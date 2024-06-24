@@ -6,7 +6,7 @@ import numpy as np
 
 app = Flask(__name__)
 
-# Load the car park positions
+# this is to Load the car park position
 with open('Carpark', 'rb') as f:
     posList = pickle.load(f)
 
