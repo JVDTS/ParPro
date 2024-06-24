@@ -12,7 +12,7 @@ with open('Carpark', 'rb') as f:
 
 width, height = 107, 48
 
-# Initialize the video capture
+# Initialize the video captures
 cap = cv2.VideoCapture('carPark.mp4')
 
 # Global variable to store free spaces count
