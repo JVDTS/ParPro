@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parking Spaces Monitor</title>
+    <script>
+        // JavaScript code for fetching and updating free spaces count
+        setInterval(() => {
+            fetch('/free_spaces_count')
+                .then(response => response.json())
+                .then(data => {
+                    // Update the UI with the number of free spaces
+                    document.getElementById('freeSpacesCount').innerText = data.free_spaces;
+                })
+                .catch(error => console.error('Error fetching free spaces count:', error));
+        }, 1000); // Fetch every 1 second
+    </script>
+</head>
+<body>
+    <h1>Parking Spaces Monitor</h1>
+    <div>
+        <img src="{{ url_for('video_feed') }}" width="640" height="480">
+    </div>
+    <div>
+        <p>Free Spaces: <span id="freeSpacesCount">Loading...</span></p>
+    </div>
+</body>
+</html>
