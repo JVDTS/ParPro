@@ -6,7 +6,7 @@ import numpy as np
 
 app = Flask(__name__)
 
-# this is to Load the car park position
+# Load the car park position
 with open('Carpark', 'rb') as f:
     posList = pickle.load(f)
 
@@ -86,4 +86,4 @@ def free_spaces_count():
     return jsonify({'free_spaces': free_spaces})
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, host='0.0.0.0', port=5000)
