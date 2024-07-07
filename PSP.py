@@ -2,7 +2,6 @@ import cv2
 import pickle
 
 
-
 width, height = 107, 48
 
 try:

@@ -3,6 +3,10 @@ import cv2
 import pickle
 import cvzone
 import numpy as np
+from pyngrok import ngrok
+import threading
+import time
+import json
 
 app = Flask(__name__)
 
@@ -12,11 +16,14 @@ with open('Carpark', 'rb') as f:
 
 width, height = 107, 48
 
-# Initialize the video captures
 cap = cv2.VideoCapture('carPark.mp4')
 
-# Global variable to store free spaces count
+
 free_spaces = 0
+
+# JSON file to store the free spaces count
+json_file = 'free_spaces.json'
+
 
 def checkParkingSpace(imgPro, img):
     global free_spaces
@@ -46,6 +53,7 @@ def checkParkingSpace(imgPro, img):
     free_spaces = spaceCounter
     return spaceCounter
 
+
 def generate_frames():
     global free_spaces
     while True:
@@ -72,18 +80,66 @@ def generate_frames():
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
+
+def update_free_spaces():
+    global free_spaces
+    while True:
+        # Update free spaces count
+        if cap.get(cv2.CAP_PROP_POS_FRAMES) == cap.get(cv2.CAP_PROP_FRAME_COUNT):
+            cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+
+        success, img = cap.read()
+        if not success:
+            break
+
+        imgGray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        imgBlur = cv2.GaussianBlur(imgGray, (3, 3), 1)
+        imgThreshold = cv2.adaptiveThreshold(imgBlur, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+                                             cv2.THRESH_BINARY_INV, 25, 16)
+        imgMedian = cv2.medianBlur(imgThreshold, 5)
+        kernel = np.ones((3, 3), np.uint8)
+        imgDilate = cv2.dilate(imgMedian, kernel, iterations=1)
+
+        free_spaces = checkParkingSpace(imgDilate, img)
+
+        # Write to JSON file
+        with open(json_file, 'w') as file:
+            json.dump({'free_spaces': free_spaces}, file)
+
+        time.sleep(5)  # Wait for 5 seconds before updating again
+
+
 @app.route('/')
 def index():
     return render_template('index.html')
+
 
 @app.route('/video_feed')
 def video_feed():
     return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
+
 @app.route('/free_spaces_count')
 def free_spaces_count():
-    global free_spaces
-    return jsonify({'free_spaces': free_spaces})
+    with open(json_file, 'r') as file:
+        data = json.load(file)
+    return jsonify(data)
+
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    try:
+        # My  ngrok  an auth token
+        ngrok.set_auth_token('2iTVVqaES8LU2TcteQnDKRxI9if_6jeMYJg1k8sSKnPLUAUru')
+
+        # This helps to expose Flask app on port 5000
+        public_url = ngrok.connect(5000).public_url
+        print(" * ngrok tunnel available at:", public_url)
+
+       # background thread
+        threading.Thread(target=update_free_spaces, daemon=True).start()
+
+        # begins Flask app locally
+        app.run(port=5000)
+
+    except Exception as e:
+        print(" * Error starting Ngrok tunnel:", e)
